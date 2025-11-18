@@ -1,0 +1,75 @@
+# 传感器模拟器配置文件
+
+# 网络配置
+network:
+  coordinator_ip: "localhost"
+  coordinator_port: 8888
+  protocol: "socket"  # socket 或 serial
+
+# 传感器节点配置
+nodes:
+  - node_id: "NODE_001"
+    location: "牛棚1号区域"
+    enabled: true
+    data_interval: 60  # 数据发送间隔（秒）
+    
+  - node_id: "NODE_002"
+    location: "牛棚2号区域"
+    enabled: true
+    data_interval: 60
+    
+  - node_id: "NODE_003"
+    location: "牛棚3号区域"
+    enabled: true
+    data_interval: 60
+
+# 传感器参数配置
+sensors:
+  temperature:
+    range: [0, 50]          # 温度范围（℃）
+    normal_range: [15, 28]  # 正常范围
+    accuracy: 2.0           # 精度（±℃）
+    unit: "℃"
+    
+  humidity:
+    range: [20, 95]         # 湿度范围（%RH）
+    normal_range: [50, 75]  # 正常范围
+    accuracy: 5.0           # 精度（±%）
+    unit: "%RH"
+    
+  nh3:
+    range: [0, 100]         # 氨气范围（ppm）
+    normal_range: [5, 15]   # 正常范围
+    alarm_level_1: 25       # 一级警告阈值
+    alarm_level_2: 40       # 二级警告阈值
+    accuracy: 1.0           # 精度（±ppm）
+    unit: "ppm"
+    
+  h2s:
+    range: [0, 50]          # 硫化氢范围（ppm）
+    normal_range: [0, 5]    # 正常范围
+    alarm_level_1: 10       # 一级警告阈值
+    alarm_level_2: 20       # 二级警告阈值
+    accuracy: 0.5           # 精度（±ppm）
+    unit: "ppm"
+
+# 数据生成模式
+data_generation:
+  mode: "normal"           # normal（正常）, abnormal（异常）, mixed（混合）
+  abnormal_probability: 0.1  # 异常数据概率（仅在mixed模式下）
+  noise_level: 0.05        # 噪声水平（0-1）
+  trend_enabled: true      # 是否启用趋势变化
+  
+# ZigBee协议模拟
+zigbee:
+  pan_id: "0x1234"         # PAN ID
+  channel: 11              # 信道
+  coordinator_address: "0x0000"
+  frame_header: "7E"       # 帧头
+  checksum_enabled: true   # 是否启用校验和
+  
+# 日志配置
+logging:
+  level: "INFO"            # DEBUG, INFO, WARNING, ERROR
+  file: "logs/simulator.log"
+  console: true
