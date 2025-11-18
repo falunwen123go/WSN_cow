@@ -22,22 +22,12 @@ public class DeviceControlLog {
     /**
      * 控制动作：START-启动，STOP-停止，ADJUST-调节
      */
-    private String action;
+    private String controlAction;
     
     /**
-     * 控制方式：MANUAL-手动，AUTO-自动
+     * 控制模式:0-手动,1-自动
      */
-    private String controlType;
-    
-    /**
-     * 操作前状态
-     */
-    private Integer beforeStatus;
-    
-    /**
-     * 操作后状态
-     */
-    private Integer afterStatus;
+    private Integer controlMode;
     
     /**
      * 操作人
@@ -45,12 +35,12 @@ public class DeviceControlLog {
     private String operator;
     
     /**
-     * 操作时间
+     * 控制时间
      */
-    private Date operateTime;
+    private Date controlTime;
     
     /**
-     * 备注
+     * 原因/备注
      */
-    private String remark;
+    private String reason;
 }

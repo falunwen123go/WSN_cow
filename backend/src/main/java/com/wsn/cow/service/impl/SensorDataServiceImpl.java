@@ -43,8 +43,8 @@ public class SensorDataServiceImpl implements SensorDataService {
         }
         
         // 设置接收时间
-        if (sensorData.getReceiveTime() == null) {
-            sensorData.setReceiveTime(new Date());
+        if (sensorData.getCreateTime() == null) {
+            sensorData.setCreateTime(new Date());
         }
         
         // 保存到数据库
@@ -65,8 +65,8 @@ public class SensorDataServiceImpl implements SensorDataService {
         
         Date receiveTime = new Date();
         for (SensorData data : dataList) {
-            if (data.getReceiveTime() == null) {
-                data.setReceiveTime(receiveTime);
+            if (data.getCreateTime() == null) {
+                data.setCreateTime(receiveTime);
             }
         }
         

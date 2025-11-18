@@ -30,32 +30,27 @@ public class DeviceInfo {
     private String deviceType;
     
     /**
-     * 安装位置
-     */
-    private String location;
-    
-    /**
-     * 设备状态：0-关闭，1-开启，2-故障
+     * 设备状态：0-关闭，1-运行
      */
     private Integer status;
     
     /**
-     * 自动控制模式：0-手动，1-自动
+     * 自动模式：0-手动，1-自动
      */
     private Integer autoMode;
     
     /**
-     * 安装日期
+     * 控制模式
      */
-    private Date installDate;
+    private Integer controlMode;
     
     /**
-     * 最后操作时间
+     * 创建时间
      */
-    private Date lastOpTime;
+    private Date createTime;
     
     /**
-     * 备注
+     * 更新时间
      */
-    private String remark;
+    private Date updateTime;
 }

@@ -7,6 +7,7 @@ import com.wsn.cow.util.DateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -59,6 +60,7 @@ public class NodeInfoServiceImpl implements NodeInfoService {
     
     @Override
     @Transactional
+    @Scheduled(fixedRate = 60000) // 每分钟执行一次
     public void checkNodeOnlineStatus() {
         List<NodeInfo> allNodes = nodeInfoMapper.selectAll();
         Date offlineThreshold = DateUtils.getHoursBefore(0);

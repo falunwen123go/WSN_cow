@@ -58,4 +58,19 @@ public class NodeInfo {
      * 备注
      */
     private String remark;
+    
+    /**
+     * 最后在线时间
+     */
+    private Date lastOnlineTime;
+    
+    /**
+     * 创建时间
+     */
+    private Date createTime;
+    
+    /**
+     * 更新时间
+     */
+    private Date updateTime;
 }

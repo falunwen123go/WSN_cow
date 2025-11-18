@@ -14,6 +14,9 @@
         <result column="last_comm_time" property="lastCommTime"/>
         <result column="install_date" property="installDate"/>
         <result column="remark" property="remark"/>
+        <result column="last_online_time" property="lastOnlineTime"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
     </resultMap>
 
     <insert id="insert" parameterType="com.wsn.cow.entity.NodeInfo" useGeneratedKeys="true" keyProperty="id">

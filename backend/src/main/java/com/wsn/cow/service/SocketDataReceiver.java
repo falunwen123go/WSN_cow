@@ -39,6 +39,9 @@ public class SocketDataReceiver {
     @Autowired
     private SensorDataService sensorDataService;
     
+    @Autowired
+    private DeviceControlService deviceControlService;
+    
     private ServerSocket serverSocket;
     private ExecutorService executorService;
     private volatile boolean running = false;
@@ -169,6 +172,15 @@ public class SocketDataReceiver {
                 
                 // 保存数据（包含验证和告警检测）
                 sensorDataService.saveSensorData(sensorData);
+                
+                // 执行自动控制逻辑
+                try {
+                    deviceControlService.checkAndControlByNH3(sensorData);
+                    deviceControlService.checkAndControlByH2S(sensorData);
+                    deviceControlService.checkAndControlByTemperature(sensorData);
+                } catch (Exception e) {
+                    logger.error("执行自动控制失败: nodeId={}", nodeId, e);
+                }
                 
                 logger.info("接收并保存传感器数据: nodeId={}, temp={}℃, humi={}%, NH3={}ppm, H2S={}ppm", 
                            nodeId, temperature, humidity, nh3, h2s);

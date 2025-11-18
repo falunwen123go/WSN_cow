@@ -10,8 +10,9 @@
         <result column="humidity" property="humidity"/>
         <result column="nh3_concentration" property="nh3Concentration"/>
         <result column="h2s_concentration" property="h2sConcentration"/>
+        <result column="data_status" property="dataStatus"/>
         <result column="collect_time" property="collectTime"/>
-        <result column="create_time" property="receiveTime"/>
+        <result column="create_time" property="createTime"/>
     </resultMap>
 
     <insert id="insert" parameterType="com.wsn.cow.entity.SensorData" useGeneratedKeys="true" keyProperty="id">

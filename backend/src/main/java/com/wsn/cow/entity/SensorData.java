@@ -40,12 +40,17 @@ public class SensorData {
     private Double h2sConcentration;
     
     /**
+     * 数据状态:0-正常,1-异常
+     */
+    private Integer dataStatus;
+    
+    /**
      * 数据采集时间
      */
     private Date collectTime;
     
     /**
-     * 数据接收时间
+     * 数据创建时间(接收时间)
      */
-    private Date receiveTime;
+    private Date createTime;
 }

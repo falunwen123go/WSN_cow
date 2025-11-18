@@ -6,20 +6,18 @@
     <resultMap id="BaseResultMap" type="com.wsn.cow.entity.DeviceControlLog">
         <id column="id" property="id"/>
         <result column="device_id" property="deviceId"/>
-        <result column="action" property="action"/>
-        <result column="control_type" property="controlType"/>
-        <result column="before_status" property="beforeStatus"/>
-        <result column="after_status" property="afterStatus"/>
+        <result column="control_action" property="controlAction"/>
+        <result column="control_mode" property="controlMode"/>
         <result column="operator" property="operator"/>
-        <result column="operate_time" property="operateTime"/>
-        <result column="remark" property="remark"/>
+        <result column="control_time" property="controlTime"/>
+        <result column="reason" property="reason"/>
     </resultMap>
 
     <insert id="insert" parameterType="com.wsn.cow.entity.DeviceControlLog" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO device_control_log (device_id, action, control_type, before_status, after_status,
-                                       operator, operate_time, remark)
-        VALUES (#{deviceId}, #{action}, #{controlType}, #{beforeStatus}, #{afterStatus},
-                #{operator}, #{operateTime}, #{remark})
+        INSERT INTO device_control_log (device_id, control_action, control_mode,
+                                       operator, control_time, reason)
+        VALUES (#{deviceId}, #{controlAction}, #{controlMode},
+                #{operator}, #{controlTime}, #{reason})
     </insert>
 
     <select id="selectById" resultMap="BaseResultMap">
@@ -29,7 +27,7 @@
     <select id="selectLatestByDeviceId" resultMap="BaseResultMap">
         SELECT * FROM device_control_log
         WHERE device_id = #{deviceId}
-        ORDER BY operate_time DESC
+        ORDER BY control_time DESC
         LIMIT 1
     </select>
 
@@ -40,15 +38,15 @@
             AND device_id = #{deviceId}
         </if>
         <if test="controlType != null and controlType != ''">
-            AND control_type = #{controlType}
+            AND control_mode = #{controlType}
         </if>
         <if test="startTime != null">
-            AND operate_time &gt;= #{startTime}
+            AND control_time &gt;= #{startTime}
         </if>
         <if test="endTime != null">
-            AND operate_time &lt;= #{endTime}
+            AND control_time &lt;= #{endTime}
         </if>
-        ORDER BY operate_time DESC
+        ORDER BY control_time DESC
         LIMIT #{offset}, #{limit}
     </select>
 
@@ -59,18 +57,18 @@
             AND device_id = #{deviceId}
         </if>
         <if test="controlType != null and controlType != ''">
-            AND control_type = #{controlType}
+            AND control_mode = #{controlType}
         </if>
         <if test="startTime != null">
-            AND operate_time &gt;= #{startTime}
+            AND control_time &gt;= #{startTime}
         </if>
         <if test="endTime != null">
-            AND operate_time &lt;= #{endTime}
+            AND control_time &lt;= #{endTime}
         </if>
     </select>
 
     <delete id="deleteBeforeTime">
-        DELETE FROM device_control_log WHERE operate_time &lt; #{time}
+        DELETE FROM device_control_log WHERE control_time &lt; #{time}
     </delete>
 
 </mapper>

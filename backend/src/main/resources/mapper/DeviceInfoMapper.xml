@@ -8,19 +8,16 @@
         <result column="device_id" property="deviceId"/>
         <result column="device_name" property="deviceName"/>
         <result column="device_type" property="deviceType"/>
-        <result column="location" property="location"/>
         <result column="status" property="status"/>
         <result column="auto_mode" property="autoMode"/>
-        <result column="install_date" property="installDate"/>
-        <result column="last_op_time" property="lastOpTime"/>
-        <result column="remark" property="remark"/>
+        <result column="control_mode" property="controlMode"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
     </resultMap>
 
     <insert id="insert" parameterType="com.wsn.cow.entity.DeviceInfo" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO device_info (device_id, device_name, device_type, location, status,
-                                auto_mode, install_date, last_op_time, remark)
-        VALUES (#{deviceId}, #{deviceName}, #{deviceType}, #{location}, #{status},
-                #{autoMode}, #{installDate}, #{lastOpTime}, #{remark})
+        INSERT INTO device_info (device_id, device_name, device_type, status, auto_mode)
+        VALUES (#{deviceId}, #{deviceName}, #{deviceType}, #{status}, #{autoMode})
     </insert>
 
     <select id="selectById" resultMap="BaseResultMap">
@@ -48,19 +45,16 @@
         <set>
             <if test="deviceName != null">device_name = #{deviceName},</if>
             <if test="deviceType != null">device_type = #{deviceType},</if>
-            <if test="location != null">location = #{location},</if>
             <if test="status != null">status = #{status},</if>
             <if test="autoMode != null">auto_mode = #{autoMode},</if>
-            <if test="installDate != null">install_date = #{installDate},</if>
-            <if test="lastOpTime != null">last_op_time = #{lastOpTime},</if>
-            <if test="remark != null">remark = #{remark},</if>
+            <if test="controlMode != null">control_mode = #{controlMode},</if>
         </set>
         WHERE id = #{id}
     </update>
 
     <update id="updateStatus">
         UPDATE device_info 
-        SET status = #{status}, last_op_time = NOW()
+        SET status = #{status}
         WHERE device_id = #{deviceId}
     </update>
 
