@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wsn.cow.mapper.DeviceControlLogMapper">
+
+    <resultMap id="BaseResultMap" type="com.wsn.cow.entity.DeviceControlLog">
+        <id column="id" property="id"/>
+        <result column="device_id" property="deviceId"/>
+        <result column="action" property="action"/>
+        <result column="control_type" property="controlType"/>
+        <result column="before_status" property="beforeStatus"/>
+        <result column="after_status" property="afterStatus"/>
+        <result column="operator" property="operator"/>
+        <result column="operate_time" property="operateTime"/>
+        <result column="remark" property="remark"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.wsn.cow.entity.DeviceControlLog" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO device_control_log (device_id, action, control_type, before_status, after_status,
+                                       operator, operate_time, remark)
+        VALUES (#{deviceId}, #{action}, #{controlType}, #{beforeStatus}, #{afterStatus},
+                #{operator}, #{operateTime}, #{remark})
+    </insert>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT * FROM device_control_log WHERE id = #{id}
+    </select>
+
+    <select id="selectLatestByDeviceId" resultMap="BaseResultMap">
+        SELECT * FROM device_control_log
+        WHERE device_id = #{deviceId}
+        ORDER BY operate_time DESC
+        LIMIT 1
+    </select>
+
+    <select id="selectPage" resultMap="BaseResultMap">
+        SELECT * FROM device_control_log
+        WHERE 1=1
+        <if test="deviceId != null and deviceId != ''">
+            AND device_id = #{deviceId}
+        </if>
+        <if test="controlType != null and controlType != ''">
+            AND control_type = #{controlType}
+        </if>
+        <if test="startTime != null">
+            AND operate_time &gt;= #{startTime}
+        </if>
+        <if test="endTime != null">
+            AND operate_time &lt;= #{endTime}
+        </if>
+        ORDER BY operate_time DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countByCondition" resultType="int">
+        SELECT COUNT(*) FROM device_control_log
+        WHERE 1=1
+        <if test="deviceId != null and deviceId != ''">
+            AND device_id = #{deviceId}
+        </if>
+        <if test="controlType != null and controlType != ''">
+            AND control_type = #{controlType}
+        </if>
+        <if test="startTime != null">
+            AND operate_time &gt;= #{startTime}
+        </if>
+        <if test="endTime != null">
+            AND operate_time &lt;= #{endTime}
+        </if>
+    </select>
+
+    <delete id="deleteBeforeTime">
+        DELETE FROM device_control_log WHERE operate_time &lt; #{time}
+    </delete>
+
+</mapper>

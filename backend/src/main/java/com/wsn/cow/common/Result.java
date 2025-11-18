@@ -83,4 +83,18 @@ public class Result<T> implements Serializable {
     public static <T> Result<T> error(ResultCode resultCode) {
         return new Result<>(resultCode.getCode(), resultCode.getMessage(), null);
     }
+    
+    /**
+     * 资源未找到（404）
+     */
+    public static <T> Result<T> notFound(String message) {
+        return new Result<>(ResultCode.NOT_FOUND.getCode(), message, null);
+    }
+    
+    /**
+     * 错误请求（400）
+     */
+    public static <T> Result<T> badRequest(String message) {
+        return new Result<>(ResultCode.PARAM_ERROR.getCode(), message, null);
+    }
 }

@@ -17,7 +17,8 @@
 
 ### 后端技术栈
 - **Java 21** - 开发语言
-- **SSM框架** - Spring + Spring MVC + MyBatis
+- **Spring Boot 2.7.18** - 应用框架
+- **MyBatis** - ORM框架
 - **MySQL 8.0+** - 数据库
 - **HikariCP** - 数据库连接池
 - **WebSocket** - 实时数据推送
@@ -84,9 +85,12 @@ WSN_cow/
 # 执行数据库初始化脚本
 cd database
 mysql -u root -p < init.sql
+
+# 如果遇到Schema不匹配,执行补丁脚本
+mysql -u root -p < alter_tables.sql
 ```
 
-### 2. 后端启动
+### 2. 后端启动 ✅
 
 ```bash
 # 进入后端目录
@@ -95,10 +99,29 @@ cd backend
 # 编译项目
 mvn clean compile
 
-# 打包项目
-mvn clean package
+# 启动Spring Boot应用
+mvn spring-boot:run
 
-# 运行（待添加Spring Boot支持）
+# 或打包后运行
+mvn clean package -DskipTests
+java -jar target/cow-monitor-backend-1.0.0.jar
+```
+
+**服务访问**:
+- HTTP API: http://localhost:9090
+- Socket服务: 自动启动在8888端口
+- 启动时间: ~2秒
+
+**API测试示例**:
+```powershell
+# 获取在线节点数
+Invoke-RestMethod http://localhost:9090/api/node/online/count
+
+# 获取最新传感器数据
+Invoke-RestMethod http://localhost:9090/api/sensor/latest
+
+# 获取告警列表
+Invoke-RestMethod http://localhost:9090/api/alarm/list
 ```
 
 ### 3. 前端启动（待开发）
@@ -131,71 +154,131 @@ python main.py
 
 ## API接口文档
 
-### 传感器数据接口
-- `GET /api/sensor/latest` - 获取所有节点最新数据
-- `GET /api/sensor/history` - 获取历史数据
-- `GET /api/sensor/data/{nodeId}` - 获取指定节点数据
+**基础地址**: `http://localhost:9090/api`  
+**统一返回格式**:
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": {...},
+  "timestamp": 1731912345678
+}
+```
 
-### 节点管理接口
+### 传感器数据接口 (✅ 已测试)
+- `GET /api/sensor/latest` - 获取所有节点最新数据
+- `GET /api/sensor/data/{nodeId}` - 获取指定节点最新数据
+- `GET /api/sensor/history` - 分页查询历史数据
+- `GET /api/sensor/statistics` - 查询数据统计信息
+
+### 告警管理接口 (✅ 已测试)
+- `GET /api/alarm/list` - 分页查询告警列表
+- `GET /api/alarm/{id}` - 获取告警详情
+- `GET /api/alarm/unhandled/count` - 获取未处理告警数量
+- `POST /api/alarm` - 创建告警记录
+- `PUT /api/alarm/handle/{id}` - 处理告警
+- `DELETE /api/alarm/{id}` - 删除告警记录
+- `GET /api/alarm/statistics` - 查询告警统计信息
+
+### 节点管理接口 (✅ 已测试)
 - `GET /api/node/list` - 获取节点列表
+- `GET /api/node/{nodeId}` - 获取节点详情
+- `GET /api/node/online/count` - 获取在线节点数
+- `GET /api/node/topology` - 获取网络拓扑
 - `POST /api/node` - 添加节点
 - `PUT /api/node/{nodeId}` - 更新节点
 - `DELETE /api/node/{nodeId}` - 删除节点
 
-### 告警管理接口
-- `GET /api/alarm/list` - 获取告警列表
-- `GET /api/alarm/unhandled` - 获取未处理告警
-- `PUT /api/alarm/handle/{alarmId}` - 处理告警
+### 系统配置接口 (✅ 已测试)
+- `GET /api/config/list` - 获取所有配置
+- `GET /api/config/{key}` - 获取指定配置
+- `POST /api/config` - 创建配置
+- `PUT /api/config/{key}` - 更新配置
+- `POST /api/config/refresh` - 刷新配置缓存
 
-### 设备控制接口
-- `GET /api/device/list` - 获取设备列表
-- `POST /api/device/control` - 控制设备
-- `GET /api/device/log` - 获取控制日志
+**更多详情**: 参见 `Day4_工作完成报告.md`
 
 ## 开发进度
 
-### ✅ 已完成
-- [x] 环境搭建（JDK 21、MySQL 8.0、Maven、Node.js、Python）
-- [x] 数据库设计与初始化（7张核心表）
-- [x] 后端Maven项目框架搭建
-- [x] Spring + MyBatis配置
-- [x] 公共类（Result、PageResult、Constants）
-- [x] 日志配置（Logback）
+### ✅ Day 1-2: 环境搭建与数据库设计
+- [x] JDK 21、MySQL 8.0、Maven 3.9+环境配置
+- [x] 数据库设计（7张核心表）
+- [x] init.sql初始化脚本编写
+- [x] Maven项目框架搭建
 - [x] Git仓库初始化
 
-### 🚧 进行中
-- [ ] Python传感器模拟器开发
-- [ ] 后端数据接收与处理模块
-- [ ] 告警模块开发
-- [ ] 设备控制模块开发
+### ✅ Day 3: 数据接收与持久化
+- [x] Socket数据接收服务（端口8888）
+- [x] 传感器数据解析与存储
+- [x] 告警规则引擎
+- [x] MyBatis Mapper实现
+- [x] Service业务逻辑层
+- [x] 功能测试与验证
 
-### 📅 待开发
-- [ ] 前端Vue 3项目初始化
-- [ ] 实时监控页面
-- [ ] 历史数据查询与可视化
-- [ ] 告警管理页面
-- [ ] 设备控制页面
-- [ ] 系统配置页面
+### ✅ Day 4: Spring Boot迁移与API开发
+- [x] **Spring Boot 2.7.18迁移**（从Spring Framework 5.3.31）
+- [x] 23个RESTful API端点开发
+- [x] 统一返回格式(Result<T>)
+- [x] 全局异常处理
+- [x] CORS跨域配置
+- [x] **18个API完整测试（100%通过）**
+- [x] 数据库Schema修复
+- [x] 文档编写
+
+**API统计**:
+- 传感器数据: 5个 ✅
+- 告警管理: 7个 ✅
+- 节点管理: 7个 ✅
+- 系统配置: 5个 ✅
+
+### 🚧 Day 5-6: 前端开发（进行中）
+- [ ] Vue 3 + Element Plus项目初始化
+- [ ] 实时监控大屏
+- [ ] 数据可视化(ECharts)
+- [ ] 告警管理界面
+- [ ] 节点管理界面
+- [ ] 系统配置界面
+
+### 📅 Day 7-8: Python传感器模拟器
+- [ ] 传感器数据生成算法
+- [ ] Socket客户端实现
+- [ ] 多节点模拟
+- [ ] 数据格式验证
+
+### 📅 Day 9-10: 联调与优化
+- [ ] 前后端联调
+- [ ] 性能测试与优化
+- [ ] 文档完善
+- [ ] 系统交付
 
 ## 配置说明
 
 ### 数据库配置
-编辑 `backend/src/main/resources/application.yml`：
+编辑 `backend/src/main/resources/application.properties`：
 
-```yaml
-datasource:
-  url: jdbc:mysql://localhost:3306/wsn_cow_monitor
-  username: root
-  password: your_password
+```properties
+# 数据库配置
+spring.datasource.url=jdbc:mysql://localhost:3306/wsn_cow_monitor
+spring.datasource.username=root
+spring.datasource.password=your_password
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+
+# HikariCP连接池
+spring.datasource.hikari.maximum-pool-size=20
+spring.datasource.hikari.minimum-idle=5
+
+# MyBatis配置
+mybatis.mapper-locations=classpath:mapper/*.xml
+mybatis.type-aliases-package=com.wsn.cow.entity
+
+# 服务器端口
+server.port=9090
 ```
 
-### 串口/Socket配置
-
-```yaml
-serial:
-  type: socket  # socket 或 serial
-  socket:
-    port: 8888
+### Socket服务配置
+Socket数据接收服务自动启动在8888端口，可在数据库`system_config`表中修改:
+```sql
+UPDATE system_config SET config_value='8888' WHERE config_key='serial.port';
 ```
 
 ## 告警阈值配置
@@ -225,4 +308,6 @@ serial:
 
 ---
 
-**最后更新**: 2025-11-17
+**最后更新**: 2025-11-18  
+**当前版本**: v1.0.0  
+**开发状态**: Day 4完成，后端API开发完毕 ✅

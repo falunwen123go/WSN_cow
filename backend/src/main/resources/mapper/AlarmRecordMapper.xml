@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wsn.cow.mapper.AlarmRecordMapper">
+
+    <resultMap id="BaseResultMap" type="com.wsn.cow.entity.AlarmRecord">
+        <id column="id" property="id"/>
+        <result column="node_id" property="nodeId"/>
+        <result column="alarm_type" property="alarmType"/>
+        <result column="alarm_level" property="alarmLevel"/>
+        <result column="current_value" property="currentValue"/>
+        <result column="threshold_value" property="threshold"/>
+        <result column="alarm_time" property="alarmTime"/>
+        <result column="status" property="handleStatus"/>
+        <result column="handle_time" property="handleTime"/>
+        <result column="remark" property="handleRemark"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.wsn.cow.entity.AlarmRecord" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO alarm_record (node_id, alarm_type, alarm_level, current_value, threshold_value, alarm_time, status)
+        VALUES (#{nodeId}, #{alarmType}, #{alarmLevel}, #{currentValue}, #{threshold}, #{alarmTime}, #{handleStatus})
+    </insert>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT * FROM alarm_record WHERE id = #{id}
+    </select>
+
+    <select id="selectPage" resultMap="BaseResultMap">
+        SELECT * FROM alarm_record
+        WHERE 1=1
+        <if test="nodeId != null and nodeId != ''">
+            AND node_id = #{nodeId}
+        </if>
+        <if test="alarmType != null and alarmType != ''">
+            AND alarm_type = #{alarmType}
+        </if>
+        <if test="alarmLevel != null">
+            AND alarm_level = #{alarmLevel}
+        </if>
+        <if test="handleStatus != null">
+            AND status = #{handleStatus}
+        </if>
+        <if test="startTime != null">
+            AND alarm_time &gt;= #{startTime}
+        </if>
+        <if test="endTime != null">
+            AND alarm_time &lt;= #{endTime}
+        </if>
+        ORDER BY alarm_time DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countByCondition" resultType="int">
+        SELECT COUNT(*) FROM alarm_record
+        WHERE 1=1
+        <if test="nodeId != null and nodeId != ''">
+            AND node_id = #{nodeId}
+        </if>
+        <if test="alarmType != null and alarmType != ''">
+            AND alarm_type = #{alarmType}
+        </if>
+        <if test="alarmLevel != null">
+            AND alarm_level = #{alarmLevel}
+        </if>
+        <if test="handleStatus != null">
+            AND status = #{handleStatus}
+        </if>
+        <if test="startTime != null">
+            AND alarm_time &gt;= #{startTime}
+        </if>
+        <if test="endTime != null">
+            AND alarm_time &lt;= #{endTime}
+        </if>
+    </select>
+
+    <select id="countUnhandled" resultType="int">
+        SELECT COUNT(*) FROM alarm_record WHERE status = 0
+    </select>
+
+    <update id="updateHandleStatus">
+        UPDATE alarm_record
+        SET status = #{handleStatus},
+            handle_time = NOW(),
+            remark = #{handleRemark}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteBeforeTime">
+        DELETE FROM alarm_record WHERE alarm_time &lt; #{time}
+    </delete>
+
+    <delete id="deleteById">
+        DELETE FROM alarm_record WHERE id = #{id}
+    </delete>
+
+</mapper>

@@ -55,7 +55,7 @@ sensors:
 
 # 数据生成模式
 data_generation:
-  mode: "normal"           # normal（正常）, abnormal（异常）, mixed（混合）
+  mode: "abnormal"         # normal（正常）, abnormal（异常）, mixed（混合）
   abnormal_probability: 0.1  # 异常数据概率（仅在mixed模式下）
   noise_level: 0.05        # 噪声水平（0-1）
   trend_enabled: true      # 是否启用趋势变化

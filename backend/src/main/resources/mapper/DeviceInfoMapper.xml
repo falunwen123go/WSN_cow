@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wsn.cow.mapper.DeviceInfoMapper">
+
+    <resultMap id="BaseResultMap" type="com.wsn.cow.entity.DeviceInfo">
+        <id column="id" property="id"/>
+        <result column="device_id" property="deviceId"/>
+        <result column="device_name" property="deviceName"/>
+        <result column="device_type" property="deviceType"/>
+        <result column="location" property="location"/>
+        <result column="status" property="status"/>
+        <result column="auto_mode" property="autoMode"/>
+        <result column="install_date" property="installDate"/>
+        <result column="last_op_time" property="lastOpTime"/>
+        <result column="remark" property="remark"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.wsn.cow.entity.DeviceInfo" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO device_info (device_id, device_name, device_type, location, status,
+                                auto_mode, install_date, last_op_time, remark)
+        VALUES (#{deviceId}, #{deviceName}, #{deviceType}, #{location}, #{status},
+                #{autoMode}, #{installDate}, #{lastOpTime}, #{remark})
+    </insert>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT * FROM device_info WHERE id = #{id}
+    </select>
+
+    <select id="selectByDeviceId" resultMap="BaseResultMap">
+        SELECT * FROM device_info WHERE device_id = #{deviceId}
+    </select>
+
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT * FROM device_info ORDER BY device_id
+    </select>
+
+    <select id="selectByType" resultMap="BaseResultMap">
+        SELECT * FROM device_info WHERE device_type = #{deviceType} ORDER BY device_id
+    </select>
+
+    <select id="selectByStatus" resultMap="BaseResultMap">
+        SELECT * FROM device_info WHERE status = #{status} ORDER BY device_id
+    </select>
+
+    <update id="updateById" parameterType="com.wsn.cow.entity.DeviceInfo">
+        UPDATE device_info
+        <set>
+            <if test="deviceName != null">device_name = #{deviceName},</if>
+            <if test="deviceType != null">device_type = #{deviceType},</if>
+            <if test="location != null">location = #{location},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="autoMode != null">auto_mode = #{autoMode},</if>
+            <if test="installDate != null">install_date = #{installDate},</if>
+            <if test="lastOpTime != null">last_op_time = #{lastOpTime},</if>
+            <if test="remark != null">remark = #{remark},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateStatus">
+        UPDATE device_info 
+        SET status = #{status}, last_op_time = NOW()
+        WHERE device_id = #{deviceId}
+    </update>
+
+    <update id="updateAutoMode">
+        UPDATE device_info
+        SET auto_mode = #{autoMode}
+        WHERE device_id = #{deviceId}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM device_info WHERE id = #{id}
+    </delete>
+
+</mapper>

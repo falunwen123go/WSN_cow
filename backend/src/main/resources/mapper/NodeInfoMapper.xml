@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wsn.cow.mapper.NodeInfoMapper">
+
+    <resultMap id="BaseResultMap" type="com.wsn.cow.entity.NodeInfo">
+        <id column="id" property="id"/>
+        <result column="node_id" property="nodeId"/>
+        <result column="node_name" property="nodeName"/>
+        <result column="location" property="location"/>
+        <result column="status" property="status"/>
+        <result column="battery_level" property="batteryLevel"/>
+        <result column="signal_strength" property="signalStrength"/>
+        <result column="last_comm_time" property="lastCommTime"/>
+        <result column="install_date" property="installDate"/>
+        <result column="remark" property="remark"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.wsn.cow.entity.NodeInfo" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO node_info (node_id, node_name, location, status, battery_level, 
+                              signal_strength, last_comm_time, install_date, remark)
+        VALUES (#{nodeId}, #{nodeName}, #{location}, #{status}, #{batteryLevel},
+                #{signalStrength}, #{lastCommTime}, #{installDate}, #{remark})
+    </insert>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT * FROM node_info WHERE id = #{id}
+    </select>
+
+    <select id="selectByNodeId" resultMap="BaseResultMap">
+        SELECT * FROM node_info WHERE node_id = #{nodeId}
+    </select>
+
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT * FROM node_info ORDER BY node_id
+    </select>
+
+    <select id="selectByStatus" resultMap="BaseResultMap">
+        SELECT * FROM node_info WHERE status = #{status} ORDER BY node_id
+    </select>
+
+    <update id="updateById" parameterType="com.wsn.cow.entity.NodeInfo">
+        UPDATE node_info
+        <set>
+            <if test="nodeName != null">node_name = #{nodeName},</if>
+            <if test="location != null">location = #{location},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="batteryLevel != null">battery_level = #{batteryLevel},</if>
+            <if test="signalStrength != null">signal_strength = #{signalStrength},</if>
+            <if test="lastCommTime != null">last_comm_time = #{lastCommTime},</if>
+            <if test="installDate != null">install_date = #{installDate},</if>
+            <if test="remark != null">remark = #{remark},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateStatus">
+        UPDATE node_info 
+        SET status = #{status}, last_comm_time = NOW()
+        WHERE node_id = #{nodeId}
+    </update>
+
+    <update id="updateCommInfo">
+        UPDATE node_info
+        SET battery_level = #{batteryLevel},
+            signal_strength = #{signalStrength},
+            last_comm_time = NOW()
+        WHERE node_id = #{nodeId}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM node_info WHERE id = #{id}
+    </delete>
+
+</mapper>
