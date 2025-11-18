@@ -21,16 +21,16 @@ import { ref, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 
 interface Props {
-  deviceId: number
+  deviceId: string                  // ⚠️ String类型
   deviceName: string
   status: number // 1-开启, 0-关闭
-  mode?: number // 1-自动, 2-手动
+  mode?: number // 1-自动, 2-手动 (对应后端autoMode: 0-手动, 1-自动)
   showMode?: boolean
   disabled?: boolean
 }
 
 interface Emits {
-  (e: 'control', deviceId: number, value: string): void
+  (e: 'control', deviceId: string, action: 'START' | 'STOP'): void
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -77,8 +77,8 @@ const handleSwitch = async (value: boolean) => {
 
   try {
     loading.value = true
-    const controlValue = value ? 'on' : 'off'
-    emit('control', props.deviceId, controlValue)
+    const action = value ? 'START' : 'STOP'
+    emit('control', props.deviceId, action)
   } catch (error) {
     console.error('设备控制失败:', error)
     switchValue.value = !value

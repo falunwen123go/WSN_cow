@@ -37,7 +37,8 @@ http.interceptors.response.use(
       return Promise.reject(new Error(res.message || '请求失败'))
     }
     
-    return res
+    // 返回data字段，这样API函数可以直接使用返回的数据
+    return res.data
   },
   (error) => {
     console.error('响应错误:', error)

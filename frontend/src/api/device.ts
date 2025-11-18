@@ -1,9 +1,9 @@
 import { request } from '@/utils/http'
 import type { DeviceInfo, DeviceControlLog, PageParams, PageResult } from '@/types'
 
-// 获取设备列表(分页)
-export const getDeviceList = (params?: PageParams & { deviceType?: number; deviceStatus?: number; nodeId?: number }) => {
-  return request.get<PageResult<DeviceInfo>>('/device/list', params)
+// 获取设备列表
+export const getDeviceList = (params?: PageParams & { deviceType?: string; status?: number }) => {
+  return request.get<DeviceInfo[]>('/device/list', params)
 }
 
 // 获取所有设备(不分页)
@@ -16,27 +16,47 @@ export const getDeviceById = (id: number) => {
   return request.get<DeviceInfo>(`/device/${id}`)
 }
 
-// 控制设备(开/关)
-export const controlDevice = (data: { deviceId: number; controlValue: string; controlUser?: string }) => {
-  return request.post<void>('/device/control', data)
+// 根据设备ID获取设备信息
+export const getDeviceByDeviceId = (deviceId: string) => {
+  return request.get<DeviceInfo>(`/device/deviceId/${deviceId}`)
 }
 
-// 切换设备控制模式(自动/手动)
-export const switchDeviceMode = (data: { deviceId: number; controlMode: number }) => {
-  return request.post<void>('/device/mode/switch', data)
+// 手动控制设备
+export const controlDevice = (
+  deviceId: string,
+  action: 'START' | 'STOP' | 'ADJUST',
+  operator?: string,
+  reason?: string
+) => {
+  return request.post<void>('/device/control', {
+    deviceId,
+    action,
+    operator: operator || 'admin',
+    reason
+  })
 }
 
-// 获取设备控制日志(分页)
-export const getDeviceControlLogs = (params: PageParams & { deviceId?: number; startTime?: string; endTime?: string }) => {
-  return request.get<PageResult<DeviceControlLog>>('/device/logs', params)
+// 切换控制模式
+export const switchDeviceMode = (deviceId: string, autoMode: number) => {
+  return request.put<void>(`/device/${deviceId}/mode`, { autoMode })
 }
 
-// 获取设备状态统计
-export const getDeviceStatusStats = () => {
-  return request.get<{ online: number; offline: number; total: number }>('/device/status/stats')
+// 查询控制日志(分页)
+export const getDeviceControlLogs = (params: PageParams & { 
+  deviceId?: string
+  controlMode?: number
+  startTime?: string
+  endTime?: string 
+}) => {
+  return request.get<PageResult<DeviceControlLog>>('/device/log', params)
 }
 
-// 批量控制设备
-export const controlBatchDevices = (data: { deviceIds: number[]; controlValue: string; controlUser?: string }) => {
-  return request.post<void>('/device/control/batch', data)
+// 获取设备最新日志
+export const getDeviceLatestLog = (deviceId: string) => {
+  return request.get<DeviceControlLog>(`/device/${deviceId}/latest-log`)
+}
+
+// 获取运行中设备数量
+export const getRunningDeviceCount = () => {
+  return request.get<number>('/device/running/count')
 }
