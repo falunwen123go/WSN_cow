@@ -21,6 +21,23 @@
       </el-form>
     </el-card>
 
+    <!-- 网络拓扑图 -->
+    <el-card shadow="hover" class="topology-card">
+      <template #header>
+        <div class="card-header">
+          <span>网络拓扑图</span>
+          <div>
+            <el-tag type="success" style="margin-right: 10px">
+              <el-icon><Connection /></el-icon>
+              星型拓扑
+            </el-tag>
+            <el-tag type="info">{{ tableData.length }} 个节点</el-tag>
+          </div>
+        </div>
+      </template>
+      <div ref="topologyChart" class="topology-chart"></div>
+    </el-card>
+
     <!-- 节点列表 -->
     <el-card shadow="hover" class="table-card">
       <template #header>
@@ -196,13 +213,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
-import { Search, Refresh, Plus, View, Edit, Delete } from '@element-plus/icons-vue'
+import { Search, Refresh, Plus, View, Edit, Delete, Connection } from '@element-plus/icons-vue'
 import dayjs from 'dayjs'
+import * as echarts from 'echarts'
 import NodeStatus from '@/components/NodeStatus.vue'
 import { getAllNodes, addNode, updateNode, deleteNode } from '@/api/node'
 import type { NodeInfo } from '@/types'
+
+// 拓扑图DOM引用
+const topologyChart = ref<HTMLElement>()
+let chartInstance: echarts.ECharts | null = null
 
 // 搜索表单
 const searchForm = ref({
@@ -269,11 +291,178 @@ const fetchNodes = async () => {
   try {
     const data = await getAllNodes()
     tableData.value = data
+    // 更新拓扑图
+    await nextTick()
+    initTopologyChart()
   } catch (error) {
     ElMessage.error('获取节点列表失败')
   } finally {
     loading.value = false
   }
+}
+
+// 初始化拓扑图
+const initTopologyChart = () => {
+  if (!topologyChart.value) return
+  
+  // 如果已存在图表实例，先销毁
+  if (chartInstance) {
+    chartInstance.dispose()
+  }
+  
+  // 创建新图表实例
+  chartInstance = echarts.init(topologyChart.value)
+  
+  // 构建图数据
+  const nodes = []
+  const links = []
+  
+  // 添加协调器节点（中心节点）
+  nodes.push({
+    id: 'coordinator',
+    name: 'ZigBee协调器',
+    symbol: 'diamond',
+    symbolSize: 80,
+    x: 400,
+    y: 250,
+    itemStyle: {
+      color: '#409EFF'
+    },
+    label: {
+      show: true,
+      fontSize: 14,
+      fontWeight: 'bold',
+      color: '#303133'
+    }
+  })
+  
+  // 添加传感器节点（以圆形排列）
+  const nodeCount = tableData.value.length
+  const radius = 200 // 圆形半径
+  const centerX = 400
+  const centerY = 250
+  
+  tableData.value.forEach((node, index) => {
+    // 计算节点位置（圆形排列）
+    const angle = (2 * Math.PI * index) / nodeCount - Math.PI / 2
+    const x = centerX + radius * Math.cos(angle)
+    const y = centerY + radius * Math.sin(angle)
+    
+    // 根据节点状态确定颜色
+    let color = '#909399' // 离线-灰色
+    if (node.status === 1) {
+      color = '#67C23A' // 在线-绿色
+    } else if (node.status === 2) {
+      color = '#F56C6C' // 故障-红色
+    }
+    
+    nodes.push({
+      id: node.nodeId,
+      name: `${node.nodeName}\n${node.location || ''}`,
+      symbol: 'circle',
+      symbolSize: 60,
+      x: x,
+      y: y,
+      itemStyle: {
+        color: color,
+        borderColor: '#fff',
+        borderWidth: 2
+      },
+      label: {
+        show: true,
+        fontSize: 12,
+        color: '#303133'
+      },
+      tooltip: {
+        formatter: () => {
+          return `
+            <div style="padding: 5px">
+              <div><strong>${node.nodeName}</strong></div>
+              <div>节点ID: ${node.nodeId}</div>
+              <div>位置: ${node.location || '-'}</div>
+              <div>状态: ${node.status === 1 ? '在线' : node.status === 2 ? '故障' : '离线'}</div>
+              <div>电池: ${node.batteryLevel}%</div>
+              <div>信号: ${node.signalStrength} dBm</div>
+            </div>
+          `
+        }
+      },
+      // 存储完整的节点信息，用于点击事件
+      nodeData: node
+    })
+    
+    // 添加连接线（从协调器到各个节点）
+    links.push({
+      source: 'coordinator',
+      target: node.nodeId,
+      lineStyle: {
+        color: node.status === 1 ? '#67C23A' : '#DCDFE6',
+        width: 2,
+        type: node.status === 1 ? 'solid' : 'dashed'
+      }
+    })
+  })
+  
+  // 配置图表选项
+  const option = {
+    title: {
+      text: '星型ZigBee网络拓扑',
+      left: 'center',
+      top: 10,
+      textStyle: {
+        fontSize: 16,
+        fontWeight: 'normal'
+      }
+    },
+    tooltip: {
+      trigger: 'item'
+    },
+    legend: {
+      data: ['在线', '离线', '故障', '协调器'],
+      top: 40,
+      left: 'center',
+      itemGap: 20
+    },
+    series: [
+      {
+        type: 'graph',
+        layout: 'none',
+        symbolSize: 50,
+        roam: true, // 允许缩放和拖拽
+        label: {
+          show: true
+        },
+        edgeSymbol: ['none', 'arrow'],
+        edgeSymbolSize: [0, 8],
+        data: nodes,
+        links: links,
+        lineStyle: {
+          opacity: 0.9,
+          curveness: 0
+        },
+        emphasis: {
+          focus: 'adjacency',
+          lineStyle: {
+            width: 4
+          }
+        }
+      }
+    ]
+  }
+  
+  chartInstance.setOption(option)
+  
+  // 添加点击事件
+  chartInstance.on('click', (params: any) => {
+    if (params.dataType === 'node' && params.data.nodeData) {
+      handleView(params.data.nodeData)
+    }
+  })
+  
+  // 窗口大小改变时重新调整图表
+  window.addEventListener('resize', () => {
+    chartInstance?.resize()
+  })
 }
 
 // 查询
@@ -412,6 +601,17 @@ const formatDate = (date: string | Date) => {
 onMounted(() => {
   fetchNodes()
 })
+
+// 组件卸载时清理图表实例
+onUnmounted(() => {
+  if (chartInstance) {
+    window.removeEventListener('resize', () => {
+      chartInstance?.resize()
+    })
+    chartInstance.dispose()
+    chartInstance = null
+  }
+})
 </script>
 
 <style scoped>
@@ -431,5 +631,14 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.topology-card {
+  margin-bottom: 20px;
+}
+
+.topology-chart {
+  width: 100%;
+  height: 550px;
 }
 </style>
