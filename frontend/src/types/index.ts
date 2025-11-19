@@ -28,9 +28,14 @@ export interface SensorData {
   humidity: number
   nh3Concentration: number          // ⚠️ 氨气浓度
   h2sConcentration: number          // ⚠️ 硫化氢浓度
+  milkYield?: number                // 🆕 产奶量 (kg/天)
   dataStatus: number
   collectTime: string               // ⚠️ 采集时间
   createTime: string
+  // 计算字段
+  thi?: number                      // 🆕 温湿度指数 (THI)
+  aqi?: number                      // 🆕 空气质量指数 (AQI)
+  environmentScore?: number         // 🆕 环境评分 (0-100)
 }
 
 // 节点信息

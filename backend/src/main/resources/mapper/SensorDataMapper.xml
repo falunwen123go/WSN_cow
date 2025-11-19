@@ -10,21 +10,22 @@
         <result column="humidity" property="humidity"/>
         <result column="nh3_concentration" property="nh3Concentration"/>
         <result column="h2s_concentration" property="h2sConcentration"/>
+        <result column="milk_yield" property="milkYield"/>
         <result column="data_status" property="dataStatus"/>
         <result column="collect_time" property="collectTime"/>
         <result column="create_time" property="createTime"/>
     </resultMap>
 
     <insert id="insert" parameterType="com.wsn.cow.entity.SensorData" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO sensor_data (node_id, temperature, humidity, nh3_concentration, h2s_concentration, collect_time)
-        VALUES (#{nodeId}, #{temperature}, #{humidity}, #{nh3Concentration}, #{h2sConcentration}, #{collectTime})
+        INSERT INTO sensor_data (node_id, temperature, humidity, nh3_concentration, h2s_concentration, milk_yield, collect_time)
+        VALUES (#{nodeId}, #{temperature}, #{humidity}, #{nh3Concentration}, #{h2sConcentration}, #{milkYield}, #{collectTime})
     </insert>
 
     <insert id="batchInsert" parameterType="list">
-        INSERT INTO sensor_data (node_id, temperature, humidity, nh3_concentration, h2s_concentration, collect_time)
+        INSERT INTO sensor_data (node_id, temperature, humidity, nh3_concentration, h2s_concentration, milk_yield, collect_time)
         VALUES
         <foreach collection="list" item="item" separator=",">
-            (#{item.nodeId}, #{item.temperature}, #{item.humidity}, #{item.nh3Concentration}, #{item.h2sConcentration}, #{item.collectTime})
+            (#{item.nodeId}, #{item.temperature}, #{item.humidity}, #{item.nh3Concentration}, #{item.h2sConcentration}, #{item.milkYield}, #{item.collectTime})
         </foreach>
     </insert>
 

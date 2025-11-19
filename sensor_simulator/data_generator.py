@@ -57,6 +57,9 @@ class SensorDataGenerator:
         nh3 = self._generate_nh3(is_abnormal)
         h2s = self._generate_h2s(is_abnormal)
         
+        # 基于环境参数计算产奶量
+        milk_yield = self._calculate_milk_yield(temperature, humidity, nh3, h2s)
+        
         # 构建数据包
         data = {
             'node_id': self.node_id,
@@ -65,6 +68,7 @@ class SensorDataGenerator:
             'humidity': round(humidity, 1),
             'nh3': round(nh3, 1),
             'h2s': round(h2s, 2),
+            'milk_yield': round(milk_yield, 2),
             'battery_level': self._generate_battery_level(),
             'signal_strength': random.randint(60, 100)
         }
@@ -236,6 +240,84 @@ class SensorDataGenerator:
         level = base_level + noise
         
         return max(0, min(100, round(level)))
+    
+    def _calculate_thi(self, temperature, humidity):
+        """
+        计算温湿度指数(THI - Temperature-Humidity Index)
+        THI = (1.8*T + 32) - [(0.55 - 0.0055*RH) * (1.8*T - 26)]
+        
+        Args:
+            temperature: 温度(℃)
+            humidity: 湿度(%)
+            
+        Returns:
+            THI值
+        """
+        t = temperature
+        rh = humidity
+        thi = (1.8 * t + 32) - ((0.55 - 0.0055 * rh) * (1.8 * t - 26))
+        return thi
+    
+    def _calculate_aqi(self, nh3, h2s):
+        """
+        计算空气质量指数(AQI - Air Quality Index)
+        AQI = 0.6 * (NH3/50) + 0.4 * (H2S/20)
+        
+        Args:
+            nh3: 氨气浓度(ppm)
+            h2s: 硫化氢浓度(ppm)
+            
+        Returns:
+            AQI值(0-1)
+        """
+        nh3_ratio = min(nh3 / 50.0, 1.0)
+        h2s_ratio = min(h2s / 20.0, 1.0)
+        aqi = 0.6 * nh3_ratio + 0.4 * h2s_ratio
+        return aqi
+    
+    def _calculate_milk_yield(self, temperature, humidity, nh3, h2s):
+        """
+        基于环境参数预测产奶量
+        
+        Args:
+            temperature: 温度(℃)
+            humidity: 湿度(%)
+            nh3: 氨气浓度(ppm)
+            h2s: 硫化氢浓度(ppm)
+            
+        Returns:
+            产奶量(kg/天)
+        """
+        # 基础产奶量 (kg/天)
+        base_milk = random.uniform(25.0, 30.0)
+        
+        # 计算THI和AQI
+        thi = self._calculate_thi(temperature, humidity)
+        aqi = self._calculate_aqi(nh3, h2s)
+        
+        # 根据THI计算产奶量损失
+        if thi < 68:
+            thi_loss = 0.0  # 无应激
+        elif thi < 72:
+            thi_loss = 0.05 + (thi - 68) * 0.0125  # 5%-10%
+        elif thi < 79:
+            thi_loss = 0.10 + (thi - 72) * 0.0143  # 10%-20%
+        else:
+            thi_loss = min(0.20 + (thi - 79) * 0.02, 0.40)  # 20%-40%
+        
+        # 根据AQI计算产奶量损失
+        if aqi < 0.3:
+            aqi_loss = 0.0  # 良好
+        elif aqi < 0.6:
+            aqi_loss = 0.05 + (aqi - 0.3) * 0.333  # 5%-15%
+        else:
+            aqi_loss = min(0.15 + (aqi - 0.6) * 0.375, 0.30)  # 15%-30%
+        
+        # 计算最终产奶量
+        random_factor = random.uniform(-0.05, 0.05)  # ±5%随机波动
+        milk_yield = base_milk * (1 - thi_loss) * (1 - aqi_loss) * (1 + random_factor)
+        
+        return max(15.0, milk_yield)  # 最低15kg/天
 
 
 if __name__ == '__main__':
@@ -247,11 +329,11 @@ if __name__ == '__main__':
     for i in range(5):
         data = generator.generate_sensor_data()
         print(f"样本 {i+1}: 温度={data['temperature']}℃, 湿度={data['humidity']}%, "
-              f"NH3={data['nh3']}ppm, H2S={data['h2s']}ppm")
+              f"NH3={data['nh3']}ppm, H2S={data['h2s']}ppm, 产奶量={data['milk_yield']}kg")
     
     print("\n=== 异常模式数据 ===")
     generator.mode = 'abnormal'
     for i in range(5):
         data = generator.generate_sensor_data()
         print(f"样本 {i+1}: 温度={data['temperature']}℃, 湿度={data['humidity']}%, "
-              f"NH3={data['nh3']}ppm, H2S={data['h2s']}ppm")
+              f"NH3={data['nh3']}ppm, H2S={data['h2s']}ppm, 产奶量={data['milk_yield']}kg")

@@ -5,6 +5,7 @@ import com.wsn.cow.mapper.SensorDataMapper;
 import com.wsn.cow.service.SensorDataService;
 import com.wsn.cow.service.AlarmService;
 import com.wsn.cow.service.NodeInfoService;
+import com.wsn.cow.service.DataFusionService;
 import com.wsn.cow.common.PageResult;
 import com.wsn.cow.util.ValidationUtils;
 import org.slf4j.Logger;
@@ -33,6 +34,9 @@ public class SensorDataServiceImpl implements SensorDataService {
     @Autowired
     private NodeInfoService nodeInfoService;
     
+    @Autowired
+    private DataFusionService dataFusionService;
+    
     @Override
     @Transactional
     public void saveSensorData(SensorData sensorData) {
@@ -47,13 +51,43 @@ public class SensorDataServiceImpl implements SensorDataService {
             sensorData.setCreateTime(new Date());
         }
         
+        // 如果没有产奶量数据,则根据环境参数预测产奶量
+        if (sensorData.getMilkYield() == null) {
+            try {
+                // 基础产奶量: 25-30 kg (可配置)
+                double baseMilk = 27.5;
+                // 随机波动: ±5%
+                double randomFactor = (Math.random() * 0.1) - 0.05;
+                Double predictedMilk = sensorData.predictMilkYield(baseMilk, randomFactor);
+                sensorData.setMilkYield(predictedMilk);
+                logger.info("预测产奶量: nodeId={}, milkYield={} kg", 
+                           sensorData.getNodeId(), 
+                           String.format("%.2f", predictedMilk));
+            } catch (Exception e) {
+                logger.warn("产奶量预测失败: {}", e.getMessage());
+            }
+        }
+        
+        // 数据融合分析
+        try {
+            java.util.Map<String, Object> fusionResult = dataFusionService.analyzeSensorData(sensorData);
+            logger.info("数据融合分析: nodeId={}, THI={}, AQI={}, score={}", 
+                       sensorData.getNodeId(),
+                       fusionResult.get("thi"),
+                       fusionResult.get("aqi"),
+                       fusionResult.get("environmentScore"));
+        } catch (Exception e) {
+            logger.error("数据融合分析失败", e);
+        }
+        
         // 保存到数据库
         sensorDataMapper.insert(sensorData);
-        logger.info("保存传感器数据成功: nodeId={}, temp={}, humi={}", 
-                   sensorData.getNodeId(), sensorData.getTemperature(), sensorData.getHumidity());
+        logger.info("保存传感器数据成功: nodeId={}, temp={}, humi={}, milk={}", 
+                   sensorData.getNodeId(), sensorData.getTemperature(), 
+                   sensorData.getHumidity(), sensorData.getMilkYield());
         
-        // 告警检测
-        checkAlarms(sensorData);
+        // 智能告警检测(使用动态阈值)
+        checkAlarmsWithDynamicThreshold(sensorData);
     }
     
     @Override
@@ -165,6 +199,45 @@ public class SensorDataServiceImpl implements SensorDataService {
         
         // 检查硫化氢告警
         alarmService.checkAndCreateAlarm(nodeId, "H2S", data.getH2sConcentration());
+    }
+    
+    /**
+     * 使用动态阈值检查告警
+     */
+    private void checkAlarmsWithDynamicThreshold(SensorData data) {
+        try {
+            // 计算THI和AQI
+            Double thi = data.calculateTHI();
+            Double aqi = data.calculateAQI();
+            
+            // 获取动态阈值
+            java.util.Map<String, Double> thresholds = dataFusionService.calculateDynamicThresholds(thi, aqi);
+            
+            String nodeId = data.getNodeId();
+            
+            // 使用动态阈值检查告警
+            if (data.getTemperature() > thresholds.get("temperature")) {
+                alarmService.checkAndCreateAlarm(nodeId, "TEMP", data.getTemperature());
+            }
+            if (data.getHumidity() > thresholds.get("humidity")) {
+                alarmService.checkAndCreateAlarm(nodeId, "HUMI", data.getHumidity());
+            }
+            if (data.getNh3Concentration() > thresholds.get("nh3")) {
+                alarmService.checkAndCreateAlarm(nodeId, "NH3", data.getNh3Concentration());
+            }
+            if (data.getH2sConcentration() > thresholds.get("h2s")) {
+                alarmService.checkAndCreateAlarm(nodeId, "H2S", data.getH2sConcentration());
+            }
+            
+            // 使用数据融合服务的智能异常检测
+            if (dataFusionService.detectAnomaly(data)) {
+                logger.warn("检测到异常数据: nodeId={}, THI={}, AQI={}", nodeId, thi, aqi);
+            }
+            
+        } catch (Exception e) {
+            logger.error("动态阈值告警检测失败,回退到标准检测", e);
+            checkAlarms(data);
+        }
     }
     
     @Override

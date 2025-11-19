@@ -45,7 +45,8 @@ class ZigBeeProtocol:
                     'temperature': sensor_data['temperature'],
                     'humidity': sensor_data['humidity'],
                     'nh3': sensor_data['nh3'],
-                    'h2s': sensor_data['h2s']
+                    'h2s': sensor_data['h2s'],
+                    'milk_yield': sensor_data.get('milk_yield', 0.0)
                 },
                 'status': {
                     'battery_level': sensor_data.get('battery_level', 100),
@@ -90,6 +91,7 @@ class ZigBeeProtocol:
                 'humidity': payload['data']['humidity'],
                 'nh3': payload['data']['nh3'],
                 'h2s': payload['data']['h2s'],
+                'milk_yield': payload['data'].get('milk_yield', 0.0),
                 'battery_level': payload['status']['battery_level'],
                 'signal_strength': payload['status']['signal_strength']
             }

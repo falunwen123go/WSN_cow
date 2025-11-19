@@ -160,6 +160,7 @@ public class SocketDataReceiver {
                 Double humidity = dataNode.get("humidity").asDouble();
                 Double nh3 = dataNode.get("nh3").asDouble();
                 Double h2s = dataNode.get("h2s").asDouble();
+                Double milkYield = dataNode.has("milk_yield") ? dataNode.get("milk_yield").asDouble() : null;
                 
                 // 构建SensorData对象
                 SensorData sensorData = new SensorData();
@@ -168,6 +169,7 @@ public class SocketDataReceiver {
                 sensorData.setHumidity(humidity);
                 sensorData.setNh3Concentration(nh3);
                 sensorData.setH2sConcentration(h2s);
+                sensorData.setMilkYield(milkYield);
                 sensorData.setCollectTime(collectTime);
                 
                 // 保存数据（包含验证和告警检测）

@@ -89,7 +89,21 @@
                   :mode="device.controlMode"
                   @control-change="handleControlChange"
                 />
+                <el-tooltip 
+                  v-if="device.controlMode === 1" 
+                  content="设备处于自动模式，需要先切换到手动模式才能控制" 
+                  placement="top"
+                >
+                  <el-button
+                    :type="device.controlMode === 1 ? 'warning' : 'primary'"
+                    size="small"
+                    @click="toggleMode(device)"
+                  >
+                    切换到{{ device.controlMode === 1 ? '手动' : '自动' }}
+                  </el-button>
+                </el-tooltip>
                 <el-button
+                  v-else
                   :type="device.controlMode === 1 ? 'warning' : 'primary'"
                   size="small"
                   @click="toggleMode(device)"

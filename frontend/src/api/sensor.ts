@@ -12,20 +12,14 @@ export const getSensorDataByNode = (nodeId: string) => {
 }
 
 // 获取历史传感器数据(分页)
-export const getHistorySensorData = (
-  nodeId: string,
-  startTime: string,
-  endTime: string,
-  page: number,
-  size: number
-) => {
-  return request.get<PageResult<SensorData>>('/sensor/history', {
-    nodeId,
-    startTime,
-    endTime,
-    pageNum: page,
-    pageSize: size
-  })
+export const getHistorySensorData = (params: {
+  nodeId: string
+  startTime: string
+  endTime: string
+  pageNum: number
+  pageSize: number
+}) => {
+  return request.get<PageResult<SensorData>>('/sensor/history', params)
 }
 
 // 获取传感器统计数据

@@ -71,6 +71,37 @@
             </span>
           </template>
         </el-table-column>
+        <el-table-column label="产奶量(kg)" width="120">
+          <template #default="{ row }">
+            <el-tag v-if="row.milkYield" type="success" size="small">
+              {{ row.milkYield.toFixed(2) }}
+            </el-tag>
+            <span v-else style="color: #909399">-</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="THI指数" width="100">
+          <template #default="{ row }">
+            <el-tag :type="getTHIType(calculateTHI(row.temperature, row.humidity))" size="small">
+              {{ calculateTHI(row.temperature, row.humidity).toFixed(1) }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="AQI指数" width="100">
+          <template #default="{ row }">
+            <el-tag :type="getAQIType(calculateAQI(row.nh3Concentration, row.h2sConcentration))" size="small">
+              {{ calculateAQI(row.nh3Concentration, row.h2sConcentration).toFixed(3) }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="环境评分" width="100">
+          <template #default="{ row }">
+            <el-progress
+              :percentage="getEnvironmentScore(row)"
+              :color="getScoreColor(getEnvironmentScore(row))"
+              :stroke-width="16"
+            />
+          </template>
+        </el-table-column>
         <el-table-column label="数据状态" width="100">
           <template #default="{ row }">
             <el-tag :type="row.dataStatus === 0 ? 'success' : 'danger'" size="small">
@@ -102,7 +133,12 @@
     </el-card>
 
     <!-- 趋势图对话框 -->
-    <el-dialog v-model="trendDialogVisible" title="数据趋势" width="900px">
+    <el-dialog 
+      v-model="trendDialogVisible" 
+      title="数据趋势" 
+      width="900px"
+      @close="handleDialogClose"
+    >
       <div ref="chartRef" style="width: 100%; height: 400px;"></div>
     </el-dialog>
   </div>
@@ -120,6 +156,7 @@ const loading = ref(false)
 const historyData = ref<SensorData[]>([])
 const trendDialogVisible = ref(false)
 const chartRef = ref<HTMLDivElement>()
+let trendChart: any = null
 
 const queryForm = reactive({
   nodeId: '',
@@ -179,15 +216,15 @@ const fetchHistoryData = async () => {
   
   loading.value = true
   try {
-    const res = await getHistorySensorData(
-      queryForm.nodeId,
-      queryForm.dateRange[0],
-      queryForm.dateRange[1],
-      pagination.page,
-      pagination.size
-    )
-    historyData.value = res.list || []
-    pagination.total = res.total || 0
+    const res = await getHistorySensorData({
+      nodeId: queryForm.nodeId,
+      startTime: queryForm.dateRange[0],
+      endTime: queryForm.dateRange[1],
+      pageNum: pagination.page,
+      pageSize: pagination.size
+    })
+    historyData.value = res?.list || []
+    pagination.total = res?.total || 0
   } catch (error) {
     ElMessage.error('获取历史数据失败')
   } finally {
@@ -215,12 +252,29 @@ const handleReset = () => {
 }
 
 const viewTrend = async (row: SensorData) => {
+  console.log('🔍 查看趋势 - 节点:', row.nodeId)
   trendDialogVisible.value = true
   await nextTick()
   
-  if (!chartRef.value) return
+  // 等待对话框完全打开
+  await new Promise(resolve => setTimeout(resolve, 300))
+  
+  if (!chartRef.value) {
+    console.warn('⚠️ 图表容器未找到')
+    return
+  }
+  
+  // 检查容器尺寸
+  const width = chartRef.value.clientWidth || 0
+  const height = chartRef.value.clientHeight || 0
+  console.log('📏 图表容器尺寸:', { width, height })
+  if (width === 0 || height === 0) {
+    console.warn('⚠️ 图表容器尺寸为0')
+    return
+  }
   
   const chart = echarts.init(chartRef.value)
+  trendChart = chart
   
   // 获取该节点最近24小时的数据用于趋势展示
   try {
@@ -228,27 +282,68 @@ const viewTrend = async (row: SensorData) => {
     const start = new Date()
     start.setTime(start.getTime() - 3600 * 1000 * 24)
     
-    const res = await getHistorySensorData(
-      row.nodeId,
-      dayjs(start).format('YYYY-MM-DD HH:mm:ss'),
-      dayjs(end).format('YYYY-MM-DD HH:mm:ss'),
-      1,
-      100
-    )
+    console.log('🔍 趋势图查询参数:', {
+      nodeId: row.nodeId,
+      startTime: dayjs(start).format('YYYY-MM-DD HH:mm:ss'),
+      endTime: dayjs(end).format('YYYY-MM-DD HH:mm:ss')
+    })
     
-    const data = res.list || []
+    let res = await getHistorySensorData({
+      nodeId: row.nodeId,
+      startTime: dayjs(start).format('YYYY-MM-DD HH:mm:ss'),
+      endTime: dayjs(end).format('YYYY-MM-DD HH:mm:ss'),
+      pageNum: 1,
+      pageSize: 100
+    })
+    
+    console.log('📄 趋势图API返回:', res)
+    console.log('📄 返回数据类型:', typeof res)
+    console.log('📄 list字段:', res?.list)
+    console.log('📄 数据条数:', res?.list?.length || 0)
+    
+    let data = res?.list || []
+    
+    // 如果24小时内无数据,尝试查询所有历史数据
+    if (data.length === 0) {
+      console.warn('⚠️ 24小时内无数据,尝试查询所有历史数据')
+      res = await getHistorySensorData({
+        nodeId: row.nodeId,
+        startTime: '2025-01-01 00:00:00',
+        endTime: dayjs(end).format('YYYY-MM-DD HH:mm:ss'),
+        pageNum: 1,
+        pageSize: 100
+      })
+      console.log('📄 全量查询结果:', res)
+      data = res?.list || []
+    }
+    
+    if (data.length === 0) {
+      console.error('❌ 该节点暂无任何历史数据')
+      ElMessage.warning('该节点暂无历史数据')
+      chart.dispose()
+      return
+    }
+    
+    console.log('✅ 获取到数据条数:', data.length)
+    console.log('📄 第一条数据:', data[0])
+    
     const times = data.map((d: SensorData) => dayjs(d.collectTime).format('HH:mm'))
+    console.log('📊 时间轴数据:', times.slice(0, 5), '...')
+    
+    // 检查数据中是否有milkYield字段
+    const hasMilkYield = data.some((d: SensorData) => d.milkYield !== null && d.milkYield !== undefined)
+    console.log('🥛 是否有产奶量数据:', hasMilkYield)
     
     chart.setOption({
       title: {
-        text: `${row.nodeId} 24小时数据趋势`,
+        text: `${row.nodeId} 数据趋势 (共${data.length}条)`,
         left: 'center'
       },
       tooltip: {
         trigger: 'axis'
       },
       legend: {
-        data: ['温度', '湿度', '氨气', '硫化氢'],
+        data: ['温度', '湿度', '氨气', '硫化氢', '产奶量'],
         bottom: 0
       },
       grid: {
@@ -302,6 +397,15 @@ const viewTrend = async (row: SensorData) => {
           data: data.map((d: SensorData) => d.h2sConcentration),
           smooth: true,
           yAxisIndex: 1
+        },
+        {
+          name: '产奶量',
+          type: 'line',
+          data: data.map((d: SensorData) => d.milkYield || 0),
+          smooth: true,
+          yAxisIndex: 0,
+          itemStyle: { color: '#67c23a' },
+          lineStyle: { width: 3 }
         }
       ]
     })
@@ -336,6 +440,59 @@ const getH2SColor = (value: number) => {
 
 const formatDate = (date: string) => {
   return dayjs(date).format('YYYY-MM-DD HH:mm:ss')
+}
+
+// 🆕 计算THI
+const calculateTHI = (temp: number, humi: number): number => {
+  return (1.8 * temp + 32) - ((0.55 - 0.0055 * humi) * (1.8 * temp - 26))
+}
+
+// 🆕 计算AQI
+const calculateAQI = (nh3: number, h2s: number): number => {
+  return 0.6 * (nh3 / 50) + 0.4 * (h2s / 20)
+}
+
+// 🆕 获取THI类型
+const getTHIType = (thi: number): string => {
+  if (thi < 68) return 'success'
+  if (thi < 72) return 'warning'
+  if (thi < 79) return 'danger'
+  return 'danger'
+}
+
+// 🆕 获取AQI类型
+const getAQIType = (aqi: number): string => {
+  if (aqi < 0.3) return 'success'
+  if (aqi < 0.6) return 'warning'
+  return 'danger'
+}
+
+// 🆕 计算环境评分
+const getEnvironmentScore = (row: SensorData): number => {
+  const thi = calculateTHI(row.temperature, row.humidity)
+  const aqi = calculateAQI(row.nh3Concentration, row.h2sConcentration)
+  const thiScore = thi < 68 ? 100 : thi < 72 ? 85 : thi < 79 ? 70 : 50
+  const aqiScore = aqi < 0.3 ? 100 : aqi < 0.6 ? 80 : 60
+  return Math.round(thiScore * 0.6 + aqiScore * 0.4)
+}
+
+// 🆕 获取评分颜色
+const getScoreColor = (score: number): string => {
+  if (score >= 85) return '#67c23a'
+  if (score >= 70) return '#e6a23c'
+  return '#f56c6c'
+}
+
+// 🆕 对话框关闭处理
+const handleDialogClose = () => {
+  if (trendChart) {
+    try {
+      trendChart.dispose()
+      trendChart = null
+    } catch (e) {
+      console.warn('销毁图表失败:', e)
+    }
+  }
 }
 
 onMounted(() => {

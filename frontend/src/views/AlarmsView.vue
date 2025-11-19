@@ -253,11 +253,23 @@ const fetchAlarmList = async () => {
     alarmList.value = res.list || []
     pagination.total = res.total || 0
     
-    // 计算统计数据
-    stats.total = pagination.total
-    stats.unhandled = alarmList.value.filter(a => a.handleStatus === 0).length
-    stats.handled = alarmList.value.filter(a => a.handleStatus === 1).length
-    stats.urgent = alarmList.value.filter(a => a.alarmLevel === 3).length
+    // 获取全部数据用于统计（不分页）
+    const allParams = {
+      pageNum: 1,
+      pageSize: 9999,
+      alarmType: '',
+      alarmLevel: undefined,
+      handleStatus: undefined,
+      nodeId: ''
+    }
+    const allRes = await getAlarmList(allParams)
+    const allAlarms = allRes.list || []
+    
+    // 计算统计数据（基于全部数据）
+    stats.total = allAlarms.length
+    stats.unhandled = allAlarms.filter(a => a.handleStatus === 0).length
+    stats.handled = allAlarms.filter(a => a.handleStatus === 1).length
+    stats.urgent = allAlarms.filter(a => a.alarmLevel === 3).length
   } catch (error) {
     ElMessage.error('获取告警列表失败')
   } finally {
