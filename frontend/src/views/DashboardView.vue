@@ -203,7 +203,7 @@ import {
 } from '@element-plus/icons-vue'
 import DataCard from '@/components/DataCard.vue'
 import AlarmBadge from '@/components/AlarmBadge.vue'
-import { getLatestSensorData, getSensorStatistics } from '@/api/sensor'
+import { getLatestSensorData, getSensorStatistics, getHistorySensorData } from '@/api/sensor'
 import { getNodeList, getOnlineNodeCount } from '@/api/node'
 import { getDeviceList, getRunningDeviceCount } from '@/api/device'
 import { getAlarmList, handleAlarm, getUnhandledAlarmCount } from '@/api/alarm'
@@ -354,50 +354,146 @@ const initTempHumiChart = async () => {
   tempHumiChart = echarts.init(tempHumiChartRef.value)
   
   try {
-    const latestData = await getLatestSensorData()
+    // 获取最近1小时的历史数据
+    const endTime = dayjs().format('YYYY-MM-DD HH:mm:ss')
+    const startTime = dayjs().subtract(1, 'hour').format('YYYY-MM-DD HH:mm:ss')
     
-    if (!latestData || latestData.length === 0) {
-      console.warn('没有传感器数据')
+    // 使用第一个节点的数据
+    const historyData = await getHistorySensorData('NODE_001', startTime, endTime, 1, 20)
+    const dataList = historyData.list || []
+    
+    if (dataList.length === 0) {
+      console.warn('没有历史传感器数据')
+      // 如果没有历史数据，使用最新数据
+      const latestData = await getLatestSensorData()
+      if (latestData && latestData.length > 0) {
+        const times = latestData.map((item: SensorData) => 
+          dayjs(item.collectTime).format('HH:mm')
+        )
+        const temps = latestData.map((item: SensorData) => item.temperature)
+        const humis = latestData.map((item: SensorData) => item.humidity)
+        
+        const option = {
+          tooltip: {
+            trigger: 'axis',
+            axisPointer: { type: 'cross' },
+            backgroundColor: 'rgba(50, 50, 50, 0.9)',
+            borderColor: '#333',
+            textStyle: { color: '#fff' }
+          },
+          legend: {
+            data: ['温度', '湿度'],
+            top: 10
+          },
+          grid: {
+            left: '60px',
+            right: '60px',
+            top: '60px',
+            bottom: '40px'
+          },
+          xAxis: {
+            type: 'category',
+            boundaryGap: false,
+            data: times,
+            axisLabel: {
+              rotate: 0,
+              interval: 0
+            }
+          },
+          yAxis: [
+            {
+              type: 'value',
+              name: '温度(℃)',
+              position: 'left',
+              axisLabel: { formatter: '{value} ℃' },
+              nameTextStyle: { padding: [0, 0, 0, 0] }
+            },
+            {
+              type: 'value',
+              name: '湿度(%)',
+              position: 'right',
+              axisLabel: { formatter: '{value} %' },
+              nameTextStyle: { padding: [0, 0, 0, 0] }
+            }
+          ],
+          series: [
+            {
+              name: '温度',
+              type: 'line',
+              smooth: true,
+              data: temps,
+              itemStyle: { color: '#f56c6c' },
+              areaStyle: { opacity: 0.2 },
+              label: {
+                show: false
+              }
+            },
+            {
+              name: '湿度',
+              type: 'line',
+              smooth: true,
+              yAxisIndex: 1,
+              data: humis,
+              itemStyle: { color: '#409eff' },
+              areaStyle: { opacity: 0.2 },
+              label: {
+                show: false
+              }
+            }
+          ]
+        }
+        tempHumiChart.setOption(option)
+      }
       return
     }
     
-    const times = latestData.map((item: SensorData) => 
+    const times = dataList.map((item: SensorData) => 
       dayjs(item.collectTime).format('HH:mm')
     )
-    const temps = latestData.map((item: SensorData) => item.temperature)
-    const humis = latestData.map((item: SensorData) => item.humidity)
+    const temps = dataList.map((item: SensorData) => item.temperature)
+    const humis = dataList.map((item: SensorData) => item.humidity)
     
     const option = {
       tooltip: {
         trigger: 'axis',
-        axisPointer: { type: 'cross' }
+        axisPointer: { type: 'cross' },
+        backgroundColor: 'rgba(50, 50, 50, 0.9)',
+        borderColor: '#333',
+        textStyle: { color: '#fff' }
       },
       legend: {
-        data: ['温度', '湿度']
+        data: ['温度', '湿度'],
+        top: 10
       },
       grid: {
-        left: '3%',
-        right: '4%',
-        bottom: '3%',
-        containLabel: true
+        left: '60px',
+        right: '60px',
+        top: '60px',
+        bottom: '40px'
       },
       xAxis: {
         type: 'category',
         boundaryGap: false,
-        data: times
+        data: times,
+        axisLabel: {
+          rotate: 0,
+          interval: Math.floor(times.length / 5) // 自动间隔显示
+        }
       },
       yAxis: [
         {
           type: 'value',
           name: '温度(℃)',
           position: 'left',
-          axisLabel: { formatter: '{value} ℃' }
+          axisLabel: { formatter: '{value} ℃' },
+          nameTextStyle: { padding: [0, 0, 0, 0] }
         },
         {
           type: 'value',
           name: '湿度(%)',
           position: 'right',
-          axisLabel: { formatter: '{value} %' }
+          axisLabel: { formatter: '{value} %' },
+          nameTextStyle: { padding: [0, 0, 0, 0] }
         }
       ],
       series: [
@@ -407,7 +503,10 @@ const initTempHumiChart = async () => {
           smooth: true,
           data: temps,
           itemStyle: { color: '#f56c6c' },
-          areaStyle: { opacity: 0.3 }
+          areaStyle: { opacity: 0.2 },
+          label: {
+            show: false
+          }
         },
         {
           name: '湿度',
@@ -416,7 +515,10 @@ const initTempHumiChart = async () => {
           yAxisIndex: 1,
           data: humis,
           itemStyle: { color: '#409eff' },
-          areaStyle: { opacity: 0.3 }
+          areaStyle: { opacity: 0.2 },
+          label: {
+            show: false
+          }
         }
       ]
     }
@@ -465,42 +567,126 @@ const initGasChart = async () => {
   gasChart = echarts.init(gasChartRef.value)
   
   try {
-    const latestData = await getLatestSensorData()
+    // 获取最近1小时的历史数据
+    const endTime = dayjs().format('YYYY-MM-DD HH:mm:ss')
+    const startTime = dayjs().subtract(1, 'hour').format('YYYY-MM-DD HH:mm:ss')
     
-    if (!latestData || latestData.length === 0) {
-      console.warn('没有传感器数据')
+    // 使用第一个节点的数据
+    const historyData = await getHistorySensorData('NODE_001', startTime, endTime, 1, 20)
+    const dataList = historyData.list || []
+    
+    if (dataList.length === 0) {
+      console.warn('没有历史传感器数据')
+      // 如果没有历史数据，使用最新数据
+      const latestData = await getLatestSensorData()
+      if (latestData && latestData.length > 0) {
+        const times = latestData.map((item: SensorData) => 
+          dayjs(item.collectTime).format('HH:mm')
+        )
+        const nh3 = latestData.map((item: SensorData) => item.nh3Concentration)
+        const h2s = latestData.map((item: SensorData) => item.h2sConcentration)
+        
+        const option = {
+          tooltip: {
+            trigger: 'axis',
+            axisPointer: { type: 'cross' },
+            backgroundColor: 'rgba(50, 50, 50, 0.9)',
+            borderColor: '#333',
+            textStyle: { color: '#fff' }
+          },
+          legend: {
+            data: ['氨气(NH3)', '硫化氢(H2S)'],
+            top: 10
+          },
+          grid: {
+            left: '60px',
+            right: '60px',
+            top: '60px',
+            bottom: '40px'
+          },
+          xAxis: {
+            type: 'category',
+            boundaryGap: false,
+            data: times,
+            axisLabel: {
+              rotate: 0,
+              interval: 0
+            }
+          },
+          yAxis: {
+            type: 'value',
+            name: '浓度(ppm)',
+            axisLabel: { formatter: '{value} ppm' },
+            nameTextStyle: { padding: [0, 0, 0, 0] }
+          },
+          series: [
+            {
+              name: '氨气(NH3)',
+              type: 'line',
+              smooth: true,
+              data: nh3,
+              itemStyle: { color: '#e6a23c' },
+              areaStyle: { opacity: 0.2 },
+              label: {
+                show: false
+              }
+            },
+            {
+              name: '硫化氢(H2S)',
+              type: 'line',
+              smooth: true,
+              data: h2s,
+              itemStyle: { color: '#909399' },
+              areaStyle: { opacity: 0.2 },
+              label: {
+                show: false
+              }
+            }
+          ]
+        }
+        gasChart.setOption(option)
+      }
       return
     }
     
-    const times = latestData.map((item: SensorData) => 
+    const times = dataList.map((item: SensorData) => 
       dayjs(item.collectTime).format('HH:mm')
     )
-    const nh3 = latestData.map((item: SensorData) => item.nh3Concentration)
-    const h2s = latestData.map((item: SensorData) => item.h2sConcentration)
+    const nh3 = dataList.map((item: SensorData) => item.nh3Concentration)
+    const h2s = dataList.map((item: SensorData) => item.h2sConcentration)
     
     const option = {
       tooltip: {
         trigger: 'axis',
-        axisPointer: { type: 'cross' }
+        axisPointer: { type: 'cross' },
+        backgroundColor: 'rgba(50, 50, 50, 0.9)',
+        borderColor: '#333',
+        textStyle: { color: '#fff' }
       },
       legend: {
-        data: ['氨气(NH3)', '硫化氢(H2S)']
+        data: ['氨气(NH3)', '硫化氢(H2S)'],
+        top: 10
       },
       grid: {
-        left: '3%',
-        right: '4%',
-        bottom: '3%',
-        containLabel: true
+        left: '60px',
+        right: '60px',
+        top: '60px',
+        bottom: '40px'
       },
       xAxis: {
         type: 'category',
         boundaryGap: false,
-        data: times
+        data: times,
+        axisLabel: {
+          rotate: 0,
+          interval: Math.floor(times.length / 5) // 自动间隔显示
+        }
       },
       yAxis: {
         type: 'value',
         name: '浓度(ppm)',
-        axisLabel: { formatter: '{value} ppm' }
+        axisLabel: { formatter: '{value} ppm' },
+        nameTextStyle: { padding: [0, 0, 0, 0] }
       },
       series: [
         {
@@ -509,7 +695,10 @@ const initGasChart = async () => {
           smooth: true,
           data: nh3,
           itemStyle: { color: '#e6a23c' },
-          areaStyle: { opacity: 0.3 }
+          areaStyle: { opacity: 0.2 },
+          label: {
+            show: false
+          }
         },
         {
           name: '硫化氢(H2S)',
@@ -517,7 +706,10 @@ const initGasChart = async () => {
           smooth: true,
           data: h2s,
           itemStyle: { color: '#909399' },
-          areaStyle: { opacity: 0.3 }
+          areaStyle: { opacity: 0.2 },
+          label: {
+            show: false
+          }
         }
       ]
     }
